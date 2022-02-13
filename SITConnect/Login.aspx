@@ -24,6 +24,9 @@
 </head>
 <body>
     <form id="log_form" method="post" runat="server">
+        <div>
+            
+        </div>
         
         <div id="log_form_details">
             <div id="log_form_details2">     
@@ -31,9 +34,26 @@
                     Log In
                     <asp:Label ID="name_lbl" runat="server" Text="" EnableViewState="false"></asp:Label> <br />
                 </h1>
-                    <asp:Label ID="xss_msg" runat="server" Text="Error Message here" EnableViewState="false"></asp:Label> <br />
+                    <asp:Label ID="xss_msg" runat="server" Text="" EnableViewState="false"></asp:Label> <br />
+                    
+                    <asp:ScriptManager ID="ScriptMangager" runat="server"></asp:ScriptManager>
 
-                <asp:TextBox ID="email_tb" runat="server" Width="292px" TextMode="Email" Height="16px" Placeholder="Email"></asp:TextBox>
+                    <asp:UpdatePanel ID="UpdatePanel" runat="server" UpdateMode="Always">
+                        <Triggers>
+                            <asp:AsyncPostBackTrigger ControlID="Timer" EventName="Tick" />
+                        </Triggers>
+
+                        <ContentTemplate>
+                            
+                            <asp:Label ID="DisplayTextMinutes" runat="server" Text=""></asp:Label>
+                            <asp:Label ID="DisplayTextSeconds" runat="server" Text=""></asp:Label>
+
+                        </ContentTemplate>
+                    </asp:UpdatePanel>
+
+                    <asp:Timer ID="Timer" runat="server" Interval="1000" OnTick="Timer_Tick" Enabled="false"></asp:Timer>
+
+                <asp:TextBox ID="email_tb" runat="server" Width="292px" Height="16px" Placeholder="Email"></asp:TextBox>
                 <br />
                 <br />
                 <asp:TextBox ID="password_tb" runat="server" Width="294px" TextMode="Password" Height="16px" PlaceHolder="Password"></asp:TextBox>
@@ -51,6 +71,7 @@
             </div>
         </div>
     </form>
+
     <script>
         grecaptcha.ready(function () {
             grecaptcha.execute('6LfeWGkeAAAAAH05ohys3OUFmf6IymK2EieEiFDA', { action: 'Login' }).then(function (token) {

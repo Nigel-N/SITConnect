@@ -161,5 +161,9 @@ namespace SITConnect
             return plainText;
         }
 
+        protected void PasswordBtn_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }

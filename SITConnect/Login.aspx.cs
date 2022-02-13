@@ -33,66 +33,76 @@ namespace SITConnect
 
         protected void LoginBtn_Click(object sender, EventArgs e)
         {
-            // Check log in credentials
-            string pwd = password_tb.Text.ToString().Trim();
-            string email = email_tb.Text.ToString().Trim();
-            SHA512Managed hashing = new SHA512Managed();
-
-
-
-            string dbHash = getDBHash(email);
-            string dbSalt = getDBSalt(email);
-
-            try
+            // Input Validation
+            if (String.IsNullOrEmpty(password_tb.Text) || String.IsNullOrEmpty(email_tb.Text))
             {
-                if (dbSalt != null && dbSalt.Length > 0 && dbHash != null && dbHash.Length > 0)
+                xss_msg.Text = "Email or password field empty";
+                xss_msg.ForeColor = Color.Red;
+            }
+            else
+            {
+                string pwd = password_tb.Text.ToString().Trim();
+                string email = email_tb.Text.ToString().Trim();
+                SHA512Managed hashing = new SHA512Managed();
+
+
+
+                string dbHash = getDBHash(email);
+                string dbSalt = getDBSalt(email);
+
+                try
                 {
-                    string pwdWithSalt = pwd + dbSalt;
-                    byte[] hashWithSalt = hashing.ComputeHash(Encoding.UTF8.GetBytes(pwdWithSalt));
-                    string userHash = Convert.ToBase64String(hashWithSalt);
-
-                    if (userHash.Equals(dbHash))
+                    // Check for account lockout timer
+                    if (Session["MinutesLeft"] == null && Session["SecondsLeft"] == null)
                     {
-                        // Check captcha true false
-                        if (ValidateCaptcha())
+                        if (dbSalt != null && dbSalt.Length > 0 && dbHash != null && dbHash.Length > 0)
                         {
-                            // Add session var
-                            Session["LoggedIn"] = email_tb.Text.Trim();
+                            string pwdWithSalt = pwd + dbSalt;
+                            byte[] hashWithSalt = hashing.ComputeHash(Encoding.UTF8.GetBytes(pwdWithSalt));
+                            string userHash = Convert.ToBase64String(hashWithSalt);
 
-                            // Create GUID save into session
-                            string guid = Guid.NewGuid().ToString();
-                            Session["AuthToken"] = guid;
+                            if (userHash.Equals(dbHash))
+                            {
+                                // Check captcha true false
+                                if (ValidateCaptcha())
+                                {
+                                    // Add session var
+                                    Session["LoggedIn"] = email_tb.Text.Trim();
 
-                            // Create cookie with guid value
-                            Response.Cookies.Add(new HttpCookie("AuthToken", guid));
-                            System.Diagnostics.Debug.WriteLine("User Authenticated");
-                            
+                                    // Create GUID save into session
+                                    string guid = Guid.NewGuid().ToString();
+                                    Session["AuthToken"] = guid;
 
-                            Response.Redirect("Home.aspx", false);
+                                    // Create cookie with guid value
+                                    Response.Cookies.Add(new HttpCookie("AuthToken", guid));
+                                    System.Diagnostics.Debug.WriteLine("User Authenticated");
+
+
+                                    Response.Redirect("Home.aspx", false);
+                                }
+                                else
+                                {
+                                    xss_msg.Text = "You have failed the recaptcha. Please try again.";
+                                    xss_msg.ForeColor = Color.Red;
+                                }
+                            }
+                            else
+                            {
+                                accountLockout();
+                            }
                         }
                         else
                         {
-                            xss_msg.Text = "You have failed the recaptcha. Please try again.";
-                            xss_msg.ForeColor = Color.Red;
+                            accountLockout();
+
                         }
                     }
-                    else
-                    {
-                        xss_msg.Text = "Invalid email or password";
-                        xss_msg.ForeColor = Color.Red;
-                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    xss_msg.Text = "Invalid email or password";
-                    xss_msg.ForeColor = Color.Red;
+                    Console.WriteLine(ex);
                 }
             }
-            catch (Exception ex) {
-                Console.WriteLine(ex);
-            }
-
-            
 
         }
 
@@ -128,7 +138,7 @@ namespace SITConnect
                         string jsonResponse = readStream.ReadToEnd();
 
                         //To show the JSON response string for learning purpose
-                        xss_msg.Text = jsonResponse.ToString();
+                        //xss_msg.Text = jsonResponse.ToString();
 
                         JavaScriptSerializer js = new JavaScriptSerializer();
 
@@ -223,6 +233,88 @@ namespace SITConnect
             }
             finally { connection.Close(); }
             return s;
+        }
+
+        // Account lockout timer -----------------------------------------------------------------------------------
+        public void Timer_Tick(object sender, EventArgs e)
+        {
+            var currentTimeMinutes = int.Parse(Session["MinutesLeft"].ToString());
+            var currentTimeSeconds = int.Parse(Session["SecondsLeft"].ToString());
+
+            currentTimeSeconds--;
+
+            if (currentTimeSeconds == 0 && currentTimeMinutes == 0)
+            {
+                // Reset session
+                Session["LoggedInAttempt"] = null;
+                Session["MinutesLeft"] = null;
+                Session["SecondsLeft"] = null;
+                DisplayTextMinutes.Text = "";
+                DisplayTextSeconds.Text =  "";
+                Timer.Enabled = false;
+                return;
+
+            }
+            else if (currentTimeSeconds < 0)
+            {
+                currentTimeMinutes--;
+                currentTimeSeconds = 59;
+            }
+
+            if (currentTimeMinutes != 0)
+            {
+                DisplayTextMinutes.Text = $"Account locked out for {currentTimeMinutes} min";
+                DisplayTextSeconds.Text = $"{currentTimeSeconds} sec";
+                DisplayTextMinutes.ForeColor = Color.Red;
+                DisplayTextSeconds.ForeColor = Color.Red;
+
+            }
+            else
+            {
+                DisplayTextMinutes.Text = $"Account locked out for";
+                DisplayTextSeconds.Text = $"{currentTimeSeconds} sec";
+                DisplayTextMinutes.ForeColor = Color.Red;
+                DisplayTextSeconds.ForeColor = Color.Red;
+            }
+
+            Session["MinutesLeft"] = currentTimeMinutes;
+            Session["SecondsLeft"] = currentTimeSeconds;
+
+        }
+
+
+        public void accountLockout()
+        {
+            // Check for login attempts
+            if (Session["LoggedInAttempt"] == null)
+            {
+                Session["LoggedInAttempt"] = 1;
+                xss_msg.Text = "Invalid email or password. You have 2 tries left";
+                xss_msg.ForeColor = Color.Red;
+                System.Diagnostics.Debug.WriteLine("Attempt 1");
+            }
+            else
+            {
+                int count = Convert.ToInt32(Session["LoggedInAttempt"]);
+                Session["LoggedInAttempt"] = count + 1;
+                
+
+                if (count + 1 > 2)
+                {
+                    // Lockout set to 1 min 30 secs
+                    Session["MinutesLeft"] = 1;
+                    Session["SecondsLeft"] = 30;
+                    Timer.Enabled = true;
+                    System.Diagnostics.Debug.WriteLine("Attempt 3");
+                }
+                else
+                {
+                    xss_msg.Text = "Invalid email or password. You have 1 tries left";
+                    xss_msg.ForeColor = Color.Red;
+                    System.Diagnostics.Debug.WriteLine("Attempt 2");
+                }
+
+            }         
         }
 
     }

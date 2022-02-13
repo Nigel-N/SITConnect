@@ -91,7 +91,7 @@
                 <br />
                 <asp:Label ID="email_lbl" runat="server" Text="Email "></asp:Label>
                 <br />
-                <asp:TextBox ID="email_tb" runat="server" Width="326px" TextMode="Email" Height="16px"></asp:TextBox>
+                <asp:TextBox ID="email_tb" runat="server" Width="326px" Height="16px"></asp:TextBox>
                 <br />
                 <asp:Label ID="emaile_lbl" runat="server"></asp:Label>
                 <br />

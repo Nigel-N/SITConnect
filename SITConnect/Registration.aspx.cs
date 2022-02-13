@@ -100,16 +100,18 @@ namespace SITConnect
         protected void RegisterBtn_Click(object sender, EventArgs e)
         {
             // Input Validation
-            if (fname_tb.Text.Length > 30 || lname_tb.Text.Length > 30)
+            if (fname_tb.Text.Length > 30 || lname_tb.Text.Length > 30 || String.IsNullOrEmpty(fname_tb.Text) || String.IsNullOrEmpty(lname_tb.Text))
             {
-                namee_lbl.Text = "First name or Last name too long";
+                namee_lbl.Text = "Name field empty or too long";
                 namee_lbl.ForeColor = Color.Red;
             }
-            //else if (regex.ismatch(email_tb, "[(?=.*\d)(?=.*[a-z])(?=.*[a-z])(?=.*[^a-za-z0-9])(?!.*\s).{8,15}]"))
+            // Email Regex dont work
+            //else if (!Regex.IsMatch(email_tb.Text, "[\\^\\w+[\\+\\.\\w-]*@([\\w-]+\\.)*\\w+[\\w-]*\\.([a-z]{2,4}|\\d+)$/i\\]"))
             //{
-            //    score++;
+            //    emaile_lbl.Text = "Invalid email format";
+            //    emaile_lbl.ForeColor = Color.Red;
             //}
-            else if (cname_tb.Text.Length > 30)
+            else if (cname_tb.Text.Length > 30 || String.IsNullOrEmpty(cname_tb.Text))
             {
                 cnamee_lbl.Text = "Cardholder name too long";
                 cnamee_lbl.ForeColor = Color.Red;
@@ -129,7 +131,6 @@ namespace SITConnect
                 expdatee_lbl.Text = "Invalid expiration date";
                 expdatee_lbl.ForeColor = Color.Red;
             }
-            //&& (Regex.IsMatch(cvv_tb.Text, "[0-9]")
             else
             {
                 string pwd = password_tb.Text.ToString().Trim();
